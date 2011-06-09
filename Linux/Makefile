@@ -1,4 +1,4 @@
-obj-m := hello.o
+obj-m := params_test.o
 KERNELDIR := /lib/modules/$(shell uname -r)/build
 PWD := "$(shell pwd)"
 
