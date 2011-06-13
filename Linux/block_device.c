@@ -6,6 +6,7 @@
 #include <linux/genhd.h>
 #include <linux/blkdev.h>
 #include <linux/types.h>
+#include <linux/syscalls.h>
 
 #define AUTHOR1 "Enrique Arango Lyons"
 #define AUTHOR2 "Santiago Achury Jaramillo"
@@ -21,6 +22,9 @@ static char* cheater_name = DEV_NAME;
 static int nsectors = 10;
 static int hardsect_size = 512;
 static int which = 0;
+static int fd;
+static char* filename;
+static mm_segment_t old_fs;
 
 struct cheater_dev {
   int size;
@@ -62,17 +66,32 @@ static void cheater_request(struct request_queue_t *q) {
 static int cheater_open(struct inode *inode, struct file *filp) {
   printk(KERN_INFO "executing cheater_open\n");
   struct cheater_dev *dev = inode->i_bdev->bd_disk->private_data;
-  filp->private_data = dev;
+  printk(KERN_INFO "initialized cheater_dev\n");
+  //filp->private_data = dev;
+  printk(KERN_INFO "got private data from filp\n");
+  //fd = sys_open(filename, O_RDONLY | O_WRONLY, 0644);
+  old_fs = get_fs();
+  printk(KERN_INFO "obtained old_fs through get_fs()\n");
+  set_fs(KERNEL_DS);
+  printk(KERN_INFO "called set_fs() for KERNEL_DS");
   return SUCCESS;
 }
 
 static int cheater_release(struct inode *inode, struct file *filp) {
   printk(KERN_INFO "executing cheater_release\n");
   struct cheater_dev *dev = inode->i_bdev->bd_disk->private_data;
+  sys_close(fd);
+  set_fs(old_fs);
   return SUCCESS;
 }
 
 static struct cheater_dev *dev;
+
+struct block_device_operations cheater_ops = {
+  .owner = THIS_MODULE,
+  .open = cheater_open,
+  .release = cheater_release,
+};
 
 static int __init init_driver(void) {
   struct cheater_dev myDev;
@@ -108,7 +127,7 @@ static int __init init_driver(void) {
   printk(KERN_INFO "cheater disk allocated\n");
   dev->gd->major = cheater_major;
   dev->gd->first_minor = which * CHEATER_MINORS;
-  //dev->gd->fops = &cheater_ops;
+  dev->gd->fops = &cheater_ops;
   dev->gd->queue = dev->queue;
   dev->gd->private_data = dev;
   snprintf(dev->gd->disk_name, 32, "cheater%c", which + 'a');
