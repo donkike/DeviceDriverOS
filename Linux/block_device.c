@@ -5,6 +5,11 @@
 #include <linux/vmalloc.h>
 #include <linux/genhd.h>
 #include <linux/blkdev.h>
+#include <linux/types.h>
+
+#define AUTHOR1 "Enrique Arango Lyons"
+#define AUTHOR2 "Santiago Achury Jaramillo"
+#define AUTHOR3 "Juan Camilo Cardona Cano"
 
 #define SUCCESS 0
 #define DEV_NAME "cheater"
@@ -25,20 +30,44 @@ struct cheater_dev {
   struct gendisk *gd;
 };
 
+static void cheater_transfer(struct cheater_dev *dev, unsigned long sector, unsigned long nsect, char *buffer, int write) {
+  printk(KERN_INFO "transferring data request");
+  unsigned long offset = sector * KERNEL_SECTOR_SIZE;
+  unsigned long nbytes = nsect * KERNEL_SECTOR_SIZE;
+  if ((offset + nbytes) > dev->size){ 
+    printk(KERN_NOTICE "Beyond end-write (%ld %ld)\n", offset, nbytes);
+    return;
+  }
+  if (write)
+    memcpy(dev->data + offset, buffer, nbytes);
+  else
+    memcpy(buffer, dev->data + offset, nbytes);
+}
+
 static void cheater_request(struct request_queue_t *q) {
+  printk(KERN_INFO "a request has arrived");
   struct request *req;
-  
+  while((req = blk_fetch_request(q)) != NULL){
+    struct cheater_dev *dev = req->rq_disk->private_data;
+    if(!blk_fs_request(req)){
+      printk(KERN_NOTICE "skip non-fs request\n");
+      blk_end_request_cur(req, -1);
+      continue;
+    }
+    cheater_transfer(dev, blk_rq_pos(req), blk_rq_cur_sectors(req), req->buffer, rq_data_dir(req));
+    blk_end_request_cur(req, 0);
+  }
 }
 
 static int cheater_open(struct inode *inode, struct file *filp) {
-  printk(KERN_INFO "executing cheater_open");
+  printk(KERN_INFO "executing cheater_open\n");
   struct cheater_dev *dev = inode->i_bdev->bd_disk->private_data;
   filp->private_data = dev;
   return SUCCESS;
 }
 
 static int cheater_release(struct inode *inode, struct file *filp) {
-  printk(KERN_INFO "executing cheater_release");
+  printk(KERN_INFO "executing cheater_release\n");
   struct cheater_dev *dev = inode->i_bdev->bd_disk->private_data;
   return SUCCESS;
 }
@@ -102,4 +131,7 @@ module_exit(exit_driver);
 
 MODULE_LICENSE("Dual BSD/GPL");
 
+MODULE_AUTHOR(AUTHOR1);
+MODULE_AUTHOR(AUTHOR2);
+MODULE_AUTHOR(AUTHOR3);
 

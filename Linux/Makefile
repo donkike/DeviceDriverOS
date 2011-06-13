@@ -1,4 +1,4 @@
-obj-m := params_test.o
+obj-m := block_device.o
 KERNELDIR := /lib/modules/$(shell uname -r)/build
 PWD := "$(shell pwd)"
 
