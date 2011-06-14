@@ -16,6 +16,7 @@ Para desmontar:
 1. Desmontar el dispositivo /dev/looper0 del directorio donde se encuentre
 2. Correr `sudo rmmod looper`
 
+Más información acerca del driver se puede ver con `modinfo looper.ko`
 
 Integrantes
 -----------
