@@ -126,13 +126,11 @@ static void looper_transfer(struct looper_device *dev, sector_t sector,
   if ((offset + nbytes) > dev->size) {
     printk (KERN_NOTICE "looper: Beyond-end write (%ld %ld)\n", offset, nbytes);
     return;
-  }
-  //filp = file_open(filename, 0, 0);	
+  }  
   if (write)  	  
     file_write(filp, offset, buffer, nbytes); 
   else	 
     file_read(filp, offset, buffer, nbytes);
-  //file_close(filp);
 }
 
 static void looper_request(struct request_queue *q) {
@@ -176,13 +174,18 @@ int looper_getgeo(struct block_device * block_device, struct hd_geometry * geo) 
   return 0;
 }
 
-
+/*
+ * open device
+ */
 static int looper_open(struct block_device *bdev, fmode_t mode) {
   printk(KERN_INFO "looper: executing open");
   filp = file_open(filename, 0, 0);
   return 0;
 }
 
+/*
+ * release device
+ */
 static int looper_release(struct gendisk *gd, fmode_t mode) {
   printk(KERN_INFO "looper: executing close");
   file_close(filp);
